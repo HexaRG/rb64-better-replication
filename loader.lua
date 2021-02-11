@@ -15,3 +15,4 @@ else
     writefile("rb64br/version.txt",tostring(LatestVersion))
     writefile("rb64br/main.lua",syn.request({Url = "https://raw.githubusercontent.com/HexaRG/rb64-better-replication/master/main.lua"}).Body)
 end
+loadstring(readfile("rb64br/main.lua"))()
