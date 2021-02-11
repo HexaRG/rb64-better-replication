@@ -1,6 +1,5 @@
 --//Written by Hexa
 
-if game.PlaceId ~= 1111083356 then return end
 repeat game:GetService("RunService").RenderStepped:Wait() until game:GetService("Players").LocalPlayer ~= nil
 
 --//Config

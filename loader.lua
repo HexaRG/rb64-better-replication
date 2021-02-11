@@ -1,5 +1,7 @@
 --//Written by Hexa
 
+if game.PlaceId ~= 1111083356 then return end
+
 local LatestVersion = tonumber(syn.request("https://raw.githubusercontent.com/HexaRG/rb64-better-replication/master/version.txt","GET"))
 
 if isfolder("rb64br") then
