@@ -4,12 +4,12 @@ repeat game:GetService("RunService").RenderStepped:Wait() until game:GetService(
 
 --//Config
 
-local Glitchy = false -- Makes you look like you're having a stroke (this will not show on your client)
+local Glitchy = false -- Makes it look like you're glitchy (this will not show on your client)
 local ShowLocalPlayer = false -- Creates a fake of yourself (Debug)
 local BetterDotAnimation = true -- Improves the dot animation to no longer be static
 local DotRangeCap = true -- Whether to check the distance from the dot and the players head and cap it
 local DotRange = 2 -- The maximum distance that the dot can go
-local SpecialDetectionNum = 69 -- This is used to detect if a player is using the script, it works by spoofing the health as the number that is specified if the health at the max
+local SpecialDetectionNum = 385 -- This is used to detect if a player is using the script, it works by spoofing the health as the number that is specified if the health at the max
 local RGBNames = true -- Whether or not players using this script should have Rainbow names
 local ReplicationErrorsReported = true -- Whether or not to log plam errors
 local Hide = { -- Whether or not to hide other players when they're in these states
@@ -22,6 +22,14 @@ local HidePlayers = true -- Whether or not to hide other players
 local PlayerCollisions = true -- Whether or not other players can push you
 local PlayerDamage = true -- Whether or not you can take or deal damage to other players (you can only damage players using this script)
 local DamageFlashing = true -- Implements a damage flashing animation
+local FaceIds = { -- Stores all of the face textures
+	"rbxassetid://1451094768"; -- Default Face
+	"rbxassetid://1451124286"; -- Happy Face
+	"rbxassetid://1451124533"; -- Hurt Face
+	"rbxassetid://1451125125"; -- Blink 1 
+	"rbxassetid://1451125369"; -- Blink 2
+}
+local AlwaysReplicate = false -- Whether or not to always replicate even if the Client is paused
 
 --//Code
 
@@ -34,6 +42,7 @@ else
 	_G.BetterReplication = {}
 end
 
+-- Attempts to get the script environment, if it fails wait 1 frame
 function TryGetSenv(Obj)
 	local Senv
 	pcall(function()
@@ -48,25 +57,27 @@ end
 
 function Start(ClientObj)
 	local Client
+	-- Get the client script environment
 	repeat Client = TryGetSenv(ClientObj) until Client ~= nil
+	-- Renames the replicate remote to prevent the CharacterScript from replicating
 	if not workspace:WaitForChild("share"):FindFirstChild("ActualReplicate") then
 		workspace.share:WaitForChild("replicate").Name = "ActualReplicate"
 		local FakeRemote = Instance.new("RemoteEvent",workspace.share)
 		FakeRemote.Name = "replicate"
 	end
+	-- Replaces workspace.plam with a fake folder to prevent the CharacterScript from rendering other players
 	if not workspace:FindFirstChild("realplam") then
 		local realplams = Instance.new("Folder",workspace)
 		workspace:WaitForChild("plam").Name = "realplam"
 		realplams.Name = "plam"
 		realplams.ChildRemoved:connect(function(plam)
 			if workspace.fakes:FindFirstChild(plam.Name) then
-				local fakemodel = workspace.fakes[plam.Name]
-				Client.particle("cloud", 8, true, fakemodel.torso.CFrame)
-				fakemodel:Destroy()
+				local FakeModel = workspace.fakes[plam.Name]
+				Client.particle("cloud", 8, true, FakeModel.torso.CFrame)
+				FakeModel:Destroy()
 			end
 		end)
 	end
-	Client.studio = true
 	local SpecialPlayers = {} -- Stores all of the known players using this script (SpecialDetectionNum must be the same on your client and their client)
 	local Stomp = 0
 	local Stomped = 0
@@ -74,163 +85,193 @@ function Start(ClientObj)
 		if not Client.plam or not Client.playing or (ClientObj:FindFirstChild("title") and ClientObj.title.Playing) then
 			return
 		end
-		local PlamBackup = {}
 		local ReplicationTable = {}
-		for i, v in pairs(Client.plam:GetChildren()) do
-			if v.Name == "health" then
-				if v.Value == 4 then
-					v.Value = SpecialDetectionNum
+		for _, PlamObj in pairs(Client.plam:GetChildren()) do
+			if PlamObj.Name == "health" then
+				if PlamObj.Value == 4 then
+					--Spoof the health so other clients can detect the script
+					PlamObj.Value = SpecialDetectionNum
 				end
 			end
-			if v.Name == "faceid" and Stomp-os.clock() >= 0 then
-				v.Value = 6
+			if PlamObj.Name == "faceid" and Stomp-os.clock() >= 0 then
+				--Spoof the faceid as 6 if the player is attempting to deal damage to a nearby player
+				PlamObj.Value = 6
 			end
-			PlamBackup[v] = v.Value
-			ReplicationTable[v.Name] = v.Value
+			ReplicationTable[PlamObj.Name] = PlamObj.Value
 		end
 		if Glitchy then
-			for i, v in pairs(Client.plam:GetChildren()) do
-				if typeof(ReplicationTable[v.Name]) == "CFrame" and math.random(1,30) == 1 then
-					ReplicationTable[v.Name] *= CFrame.new(math.random(-255,255)/150,math.random(-255,255)/150,math.random(-255,255)/150) * CFrame.Angles(math.random(-255,255)/100,math.random(-255,255)/100,math.random(-255,255)/100)
-					v.Value = ReplicationTable[v.Name]
+			local PlamBackup = {}
+			
+			for _, PlamObj in pairs(Client.plam:GetChildren()) do
+				PlamBackup[PlamObj] = PlamObj.Value
+				if typeof(ReplicationTable[PlamObj.Name]) == "CFrame" and math.random(1,30) == 1 then
+					ReplicationTable[PlamObj.Name] *= CFrame.new(math.random(-255,255)/150,math.random(-255,255)/150,math.random(-255,255)/150) * CFrame.Angles(math.random(-255,255)/100,math.random(-255,255)/100,math.random(-255,255)/100)
+					PlamObj.Value = ReplicationTable[PlamObj.Name]
 				end
-				if typeof(ReplicationTable[v.Name]) == "boolean" and math.random(1,100) == 1 then
-					ReplicationTable[v.Name] = not ReplicationTable[v.Name]
-					v.Value = ReplicationTable[v.Name]
+				if typeof(ReplicationTable[PlamObj.Name]) == "boolean" and math.random(1,100) == 1 then
+					ReplicationTable[PlamObj.Name] = not ReplicationTable[v.Name]
+					PlamObj.Value = ReplicationTable[PlamObj.Name]
 				end
-				if typeof(ReplicationTable[v.Name]) == "number" and math.random(1,10) == 1 then
-					ReplicationTable[v.Name] = ReplicationTable[v.Name] + math.random(-2,2)
-					v.Value = ReplicationTable[v.Name]
+				if typeof(ReplicationTable[PlamObj.Name]) == "number" and math.random(1,10) == 1 then
+					ReplicationTable[PlamObj.Name] = ReplicationTable[v.Name] + math.random(-2,2)
+					PlamObj.Value = ReplicationTable[PlamObj.Name]
 				end
 			end
+
+			--Restore the plam (this doesn't work idk why)
+			for PlamObj, BackupValue in pairs(PlamBackup) do
+				PlamObj.Value = BackupValue
+			end
 		end
-		if not Client.paused then
+		if not Client.paused or AlwaysReplicate then
 			workspace.share.ActualReplicate:FireServer(Client.plam, ReplicationTable)
-		end
-		for i, v in pairs(PlamBackup) do
-			i.Value = v
 		end
 		local MPSLerpAlpha = DeltaTime * 5 or DeltaTime
 		local PoseLerp = DeltaTime
-		for i, plam in pairs(workspace.realplam:GetChildren()) do
-			if plam.Name ~= Client.lp.Name or ShowLocalPlayer then
-				local success,err = pcall(function()
-					if plam.health.Value == SpecialDetectionNum then
-						SpecialPlayers[plam.Name] = true
+		for _, PlamObj in pairs(workspace.realplam:GetChildren()) do
+			if PlamObj.Name ~= Client.lp.Name or ShowLocalPlayer then
+				local Success,Error = pcall(function()
+					if PlamObj.health.Value == SpecialDetectionNum then
+						SpecialPlayers[PlamObj.Name] = true
 					end
-					if (plam.mps.Value.p - Client.tpc.p).Magnitude < Client.rendist or true then
-						plam.mps.lerp.Value = plam.mps.lerp.Value:Lerp(plam.mps.Value, MPSLerpAlpha)
-						local ValidMap = string.sub(plam.map.Value,1,#Client.map.Name) == Client.map.Name
-						local ValidRoom = plam.map.Value ~= Client.map.Name .. (Client.room or (Client.levelid or ""))
-						if HidePlayers and ( (ValidRoom or (ValidMap and not Hide.OtherRooms) ) or (plam.map.Value == "Boss" and Hide.Boss) or (plam.map.Value == "credits" and Hide.Credits) or (plam.map.Value == "MAKE" and Hide.LevelEditor) ) then
-							if workspace.fakes:FindFirstChild(plam.Name) then
-								workspace.fakes[plam.Name]:Destroy()
+					if (PlamObj.mps.Value.p - Client.tpc.p).Magnitude < Client.rendist or true then
+						PlamObj.mps.lerp.Value = PlamObj.mps.lerp.Value:Lerp(PlamObj.mps.Value, MPSLerpAlpha)
+						local ValidMap = string.sub(PlamObj.map.Value,1,#Client.map.Name) == Client.map.Name
+						local ValidRoom = PlamObj.map.Value ~= Client.map.Name .. (Client.room or (Client.levelid or ""))
+						if HidePlayers and ( (ValidRoom or (ValidMap and not Hide.OtherRooms) ) or (PlamObj.map.Value == "Boss" and Hide.Boss) or (PlamObj.map.Value == "credits" and Hide.Credits) or (PlamObj.map.Value == "MAKE" and Hide.LevelEditor) ) then
+							if workspace.fakes:FindFirstChild(PlamObj.Name) then
+								workspace.fakes[PlamObj.Name]:Destroy()
 								return
 							end
-						elseif workspace.fakes:FindFirstChild(plam.Name) then
-							local fakemodel = workspace.fakes[plam.Name]
-							if PlayerDamage and plam.faceid.Value == 6 and not (Stomped-os.clock() >= 0) then
-								if (fakemodel.torso.Position - Client.char.Position).Magnitude < 5 then
-									--Client.psound(Client.vis.torso,"damage")
+						elseif workspace.fakes:FindFirstChild(PlamObj.Name) then
+							local FakeModel = workspace.fakes[PlamObj.Name]
+							if PlayerDamage and PlamObj.faceid.Value == 6 and not (Stomped-os.clock() >= 0) then
+								--Detects if the player is attempting to deal damage (faceid:6)
+								if (FakeModel.torso.Position - Client.char.Position).Magnitude < 5 then
 									Stomped = os.clock()+.2
 									Client.damage()
 								end
 							end
-							if SpecialPlayers[plam.Name] then
+							if SpecialPlayers[PlamObj.Name] then
 								PoseLerp = math.clamp(DeltaTime * 5, 0, 1/10)
 								if RGBNames then
-									fakemodel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV((os.clock()/8)%1,1,1)
+									FakeModel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV((os.clock()/8)%1,1,1)
 								else
-									fakemodel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV(0,0,1)
+									FakeModel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV(0,0,1)
 								end
 							else
 								PoseLerp = DeltaTime
 							end
-							Client.anim2(fakemodel, plam, PoseLerp)
+							-- Pose the player model
+							Client.anim2(FakeModel, PlamObj, PoseLerp)
 							if not BetterDotAnimation then
-								fakemodel.dot.CFrame = fakemodel.head.CFrame + Vector3.new(0, 2)
+								FakeModel.dot.CFrame = FakeModel.head.CFrame + Vector3.new(0, 2)
 							else
-								local TargetPosition = fakemodel.head.Position + fakemodel.head.CFrame.upVector * Client.tscale.Y * 2
-								fakemodel.dot.vel.Value = fakemodel.dot.vel.Value + (TargetPosition - fakemodel.dot.Position) * DeltaTime * 8 - fakemodel.dot.vel.Value * math.min(1, DeltaTime * 5)
-								if fakemodel.dot.Position.Y < fakemodel.head.Position.Y + fakemodel.head.CFrame.upVector.Y * 1.5 then
-									fakemodel.dot.CFrame = fakemodel.dot.CFrame - fakemodel.dot.Position + Client.v2(fakemodel.dot.Position, fakemodel.head.Position.Y + fakemodel.head.CFrame.upVector.Y * 1.5)
+								local TargetPosition = FakeModel.head.Position + FakeModel.head.CFrame.upVector * Client.tscale.Y * 2
+								FakeModel.dot.vel.Value = FakeModel.dot.vel.Value + (TargetPosition - FakeModel.dot.Position) * DeltaTime * 8 - FakeModel.dot.vel.Value * math.min(1, DeltaTime * 5)
+								if FakeModel.dot.Position.Y < FakeModel.head.Position.Y + FakeModel.head.CFrame.upVector.Y * 1.5 then
+									FakeModel.dot.CFrame = FakeModel.dot.CFrame - FakeModel.dot.Position + Client.v2(FakeModel.dot.Position, FakeModel.head.Position.Y + FakeModel.head.CFrame.upVector.Y * 1.5)
 								end
-								if not (DotRange * Client.tscale.Y < (fakemodel.dot.Position - TargetPosition).Magnitude) or not DotRangeCap then
-									fakemodel.dot.CFrame = fakemodel.dot.CFrame + fakemodel.dot.vel.Value * DeltaTime * 10
+								if not (DotRange * Client.tscale.Y < (FakeModel.dot.Position - TargetPosition).Magnitude) or not DotRangeCap then
+									FakeModel.dot.CFrame = FakeModel.dot.CFrame + FakeModel.dot.vel.Value * DeltaTime * 10
 								else
-									fakemodel.dot.CFrame = fakemodel.dot.CFrame - fakemodel.dot.CFrame.p + TargetPosition + CFrame.new(TargetPosition, fakemodel.dot.Position).lookVector * 1.9 * Client.tscale.Y
-									fakemodel.dot.vel.Value = Vector3.new()
+									FakeModel.dot.CFrame = FakeModel.dot.CFrame - FakeModel.dot.CFrame.p + TargetPosition + CFrame.new(TargetPosition, FakeModel.dot.Position).lookVector * 1.9 * Client.tscale.Y
+									FakeModel.dot.vel.Value = Vector3.new()
 								end
 							end
-							fakemodel.trs.board.CFrame = plam.skate.Value and fakemodel.torso.CFrame * Client.cfro(0, -1.7, 0) * CFrame.Angles(0, 1.5, 0) or fakemodel.torso.CFrame * Client.cfro(0, 0, 1) * CFrame.Angles(1.5, 1, 0)
-							Client.trsCF(fakemodel, plam.health.Value, 0, plam.hasfly.Value, plam.hasboard.Value, plam.hat.Value, plam.bees.Value, plam.hasflame.Value, plam.hastoy.Value)
-							if plam.skin.Value ~= plam.skin.last.Value then
-								Client.toskin(plam.skin.Value, fakemodel)
-								plam.skin.last.Value = plam.skin.Value
+							--Update the skateboard CFrame
+							FakeModel.trs.board.CFrame = PlamObj.skate.Value and FakeModel.torso.CFrame * Client.cfro(0, -1.7, 0) * CFrame.Angles(0, 1.5, 0) or FakeModel.torso.CFrame * Client.cfro(0, 0, 1) * CFrame.Angles(1.5, 1, 0)
+							--[[ Update the accessories:
+								battery pack,
+								battery 1,
+								battery 2,
+								battery 3,
+								battery 4,
+								jetpack,
+							    skateboard
+								flamethrower,
+								hats
+							]]
+							Client.trsCF(FakeModel, PlamObj.health.Value, 0, PlamObj.hasfly.Value, PlamObj.hasboard.Value, PlamObj.hat.Value, PlamObj.bees.Value, PlamObj.hasflame.Value, PlamObj.hastoy.Value)
+							-- Update the skin if it has changed
+							if PlamObj.skin.Value ~= PlamObj.skin.last.Value then
+								Client.toskin(PlamObj.skin.Value, FakeModel)
+								PlamObj.skin.last.Value = PlamObj.skin.Value
 							end
-							if (fakemodel.torso.Position - Client.char.Position).Magnitude < 5 then
+							-- Push beebo if PlayerCollisions is enabled
+							if (FakeModel.torso.Position - Client.char.Position).Magnitude < 5 then
                                 if PlayerCollisions then
-                                    local push = Client.v2(Client.char.Position - fakemodel.torso.Position) * (DeltaTime*60)
+                                    local push = Client.v2(Client.char.Position - FakeModel.torso.Position) * (DeltaTime*60)
                                     Client.char.Velocity += push
                                 end
                                 if PlayerDamage and not Client.ground and not (Stomp-os.clock() >= 0) then
                                     Client.char.Velocity = Client.v2(Client.char.Velocity, 30)
-									fakemodel.torso.damage:Play()
+									FakeModel.torso.damage:Play()
 									Stomp = os.clock()+.2
                                 end
 							end
-							if plam.faceid.Value == 2 then
-								fakemodel.head.face.Texture = "rbxassetid://1451124286"
-								return
-							elseif plam.faceid.Value == 3 then
-								fakemodel.head.face.Texture = "rbxassetid://1451124533"
+							-- Update the face texture
+							local DesiredFaceTexture = FaceIds[PlamObj.faceid.Value] or FaceIds[1]
+							FakeModel.head.face.Texture = DesiredFaceTexture
+							if PlamObj.faceid.Value == 3 then
+								--Enable damage flashing if the hurt face is detected
                                 if DamageFlashing then
                                     local t = 0
                                     if (os.clock()*6)%1 > .5 then
                                         t = 1
                                     end
-                                    for i, v in pairs(fakemodel:GetChildren()) do
+                                    for i, v in pairs(FakeModel:GetChildren()) do
                                         if v.Name ~= "trs" then
                                             v.Transparency = t
                                         end
                                     end
                                 end
-								return
-							elseif plam.faceid.Value == 4 then
-								fakemodel.head.face.Texture = "rbxassetid://1451125125"
-								return
-							elseif plam.faceid.Value == 5 then
-								fakemodel.head.face.Texture = "rbxassetid://1451125369"
-								return
 							else
-								fakemodel.head.face.Texture = "rbxassetid://1451094768"
+								--Revert the damage flashing transparency
                                 if DamageFlashing then
-                                    for i, v in pairs(fakemodel:GetChildren()) do
+                                    for i, v in pairs(FakeModel:GetChildren()) do
                                         if v.Name ~= "trs" then
                                             v.Transparency = 0
                                         end
                                     end
                                 end
-								return
 							end
-						else
-							local newfakemodel = Client.rf.vis:Clone()
-							newfakemodel.Name = plam.Name
-							newfakemodel.Parent = workspace.fakes
-							plam.mps.lerp.Value = plam.mps.Value
-							Client.loadvis(newfakemodel)
-							Client.toskin(plam.skin.Value, newfakemodel)
-							Client.anim2(newfakemodel, plam, 1/10)
-							newfakemodel.trs.board.CFrame = plam.skate.Value and newfakemodel.torso.CFrame * Client.cfro(0, -1.7, 0) * CFrame.Angles(0, 1.5, 0) or newfakemodel.torso.CFrame * Client.cfro(0, 0, 1) * CFrame.Angles(1.5, 1, 0)
-							Client.trsCF(newfakemodel, plam.health.Value, 0, plam.hasfly.Value, plam.hasboard.Value, plam.hat.Value, plam.bees.Value, plam.hasflame.Value, plam.hastoy.Value)
+						else --Fake doesn't exist
+							-- Create a fake
+							local NewFakeModel = Client.rf.vis:Clone()
+							NewFakeModel.Name = PlamObj.Name
+							NewFakeModel.Parent = workspace.fakes
+							PlamObj.mps.lerp.Value = PlamObj.mps.Value
+							Client.loadvis(NewFakeModel)
+							-- Update the skin
+							Client.toskin(PlamObj.skin.Value, NewFakeModel)
+							-- Pose the player model
+							Client.anim2(NewFakeModel, PlamObj, 1/10)
+							--Update the skateboard CFrame
+							NewFakeModel.trs.board.CFrame = PlamObj.skate.Value and NewFakeModel.torso.CFrame * Client.cfro(0, -1.7, 0) * CFrame.Angles(0, 1.5, 0) or NewFakeModel.torso.CFrame * Client.cfro(0, 0, 1) * CFrame.Angles(1.5, 1, 0)
+							--[[ Update the accessories:
+								battery pack,
+								battery 1,
+								battery 2,
+								battery 3,
+								battery 4,
+								jetpack,
+							    skateboard
+								flamethrower,
+								hats
+							]]
+							Client.trsCF(NewFakeModel, PlamObj.health.Value, 0, PlamObj.hasfly.Value, PlamObj.hasboard.Value, PlamObj.hat.Value, PlamObj.bees.Value, PlamObj.hasflame.Value, PlamObj.hastoy.Value)
 						end
 					end
 				end)
-				if not success and ReplicationErrorsReported then warn(err) end
+				if not Success and ReplicationErrorsReported then
+					warn(Error)
+				end
 			end
 		end
 	end)
 end
+
 _G.BetterReplication.NewPlayerScript = game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts").ChildAdded:Connect(function(Client)
 	if Client.Name == "CharacterScript" then
 		if _G.BetterReplication.Render then
@@ -239,6 +280,7 @@ _G.BetterReplication.NewPlayerScript = game:GetService("Players").LocalPlayer:Wa
 		Start(Client)
 	end
 end)
+
 if game:GetService("Players").LocalPlayer:WaitForChild("PlayerScripts"):FindFirstChild("CharacterScript") then
 	Start(game.Players.LocalPlayer.PlayerScripts.CharacterScript)
 end
