@@ -67,10 +67,10 @@ function Start(ClientObj)
 	end
 	-- Replaces workspace.plam with a fake folder to prevent the CharacterScript from rendering other players
 	if not workspace:FindFirstChild("realplam") then
-		local realplams = Instance.new("Folder",workspace)
+		local fakeplams = Instance.new("Folder",workspace)
 		workspace:WaitForChild("plam").Name = "realplam"
-		realplams.Name = "plam"
-		realplams.ChildRemoved:connect(function(plam)
+		fakeplams.Name = "plam"
+		workspace.realplam.ChildRemoved:connect(function(plam)
 			if workspace.fakes:FindFirstChild(plam.Name) then
 				local FakeModel = workspace.fakes[plam.Name]
 				Client.particle("cloud", 8, true, FakeModel.torso.CFrame)
