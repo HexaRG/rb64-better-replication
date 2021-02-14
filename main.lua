@@ -30,14 +30,29 @@ local FaceIds = { -- Stores all of the face textures
 	"rbxassetid://1451125369"; -- Blink 2
 }
 local AlwaysReplicate = false -- Whether or not to always replicate even if the Client is paused
+local ChatBubbles = true -- Whether or not to enable chat bubbles
 
 --//Code
 
 -- Check if we already ran the script, if so disconnect all of the old events (used for development)
 if _G.BetterReplication then
-	_G.BetterReplication.Render:Disconnect()
-	_G.BetterReplication.NewPlayerScript:Disconnect()
-	workspace.fakes:ClearAllChildren()
+	if _G.BetterReplication.Render then
+		_G.BetterReplication.Render:Disconnect()
+	end
+	if _G.BetterReplication.PlayerAdded then
+		_G.BetterReplication.PlayerAdded:Disconnect()
+	end
+	if _G.BetterReplication.PlayerRemoved then
+		_G.BetterReplication.PlayerRemoved:Disconnect()
+	end
+	if _G.BetterReplication.Chat then
+		for _,ChatEvent in pairs(_G.BetterReplication.Chat) do
+			ChatEvent:Disconnect()
+		end
+	end
+	if workspace:FindFirstChild("fakes") then
+		workspace.fakes:ClearAllChildren()
+	end
 else
 	_G.BetterReplication = {}
 end
@@ -59,6 +74,7 @@ function Start(ClientObj)
 	local Client
 	-- Get the client script environment
 	repeat Client = TryGetSenv(ClientObj) until Client ~= nil
+	game.ReplicatedFirst:RemoveDefaultLoadingScreen()
 	-- Renames the replicate remote to prevent the CharacterScript from replicating
 	if not workspace:WaitForChild("share"):FindFirstChild("ActualReplicate") then
 		workspace.share:WaitForChild("replicate").Name = "ActualReplicate"
@@ -81,6 +97,67 @@ function Start(ClientObj)
 	local SpecialPlayers = {} -- Stores all of the known players using this script (SpecialDetectionNum must be the same on your client and their client)
 	local Stomp = 0
 	local Stomped = 0
+	if ChatBubbles then
+		_G.BetterReplication.Chat = {}
+		local function PlayerAdded(Player)
+			if Player == Client.lp then
+				return
+			end
+			_G.BetterReplication.Chat[Player] = Player.Chatted:Connect(function(Message)
+				local FakeModel = workspace.fakes[Player.Name]
+				if FakeModel then
+					local Plam = workspace.realplam[Player.Name]
+					local TalkRs = game:GetService("RunService").RenderStepped:Connect(function()
+						if (os.clock()*6)%1 > .5 then
+							Plam.faceid.Value = 2
+						else
+							Plam.faceid.Value = 1
+						end
+					end)
+					if FakeModel.head:FindFirstChild("ChatBillboard") then
+						FakeModel.head.ChatBillboard:Destroy()
+					end
+					local ChatBillboard = Instance.new("BillboardGui",FakeModel.head)
+					ChatBillboard.Name = "ChatBillboard"
+					ChatBillboard.MaxDistance = math.huge
+					ChatBillboard.LightInfluence = 0
+					ChatBillboard.Size = UDim2.new(16,0,0.7,0)
+					ChatBillboard.StudsOffset = Vector3.new(0,4,0)
+					local ChatText = Instance.new("TextLabel",ChatBillboard)
+					ChatText.Name = "ChatText"
+					ChatText.Text = Message
+					ChatText.Font = Enum.Font.SourceSansBold
+					ChatText.TextScaled = true
+					ChatText.Size = UDim2.new(1,0,1,0)
+					ChatText.BackgroundTransparency = 1
+					ChatText.TextColor3 = Color3.fromHSV(0,0,1)
+					ChatText.TextStrokeColor3 = Color3.fromHSV(0,0,0.6470588235294118)
+					local Counter = 0
+					while Counter < #Message do
+						Counter += 1
+						local PitchVal = Client.map.settings:FindFirstChild("minor") and Client.min or Client.maj
+						FakeModel.head.BeeboTextSound.PlaybackSpeed = 2 ^ (PitchVal[math.random(#PitchVal)] / 12);
+						FakeModel.head.BeeboTextSound:Play()
+						wait(.15)
+					end
+					TalkRs:Disconnect()
+					Plam.faceid.Value = 1
+					wait(5)
+					if ChatBillboard then
+						ChatBillboard:Destroy()
+					end
+				end
+			end)
+		end
+		local function PlayerRemoved(Player)
+			_G.BetterReplication.Chat[Player]:Disconnect()
+		end
+		_G.BetterReplication.PlayerAdded = game:GetService("Players").PlayerAdded:Connect(PlayerAdded)
+		_G.BetterReplication.PlayerRemoved = game:GetService("Players").PlayerRemoving:Connect(PlayerRemoved)
+		for _,Player in pairs(game:GetService("Players"):GetPlayers()) do
+			PlayerAdded(Player)
+		end
+	end
 	_G.BetterReplication.Render = game:GetService("RunService").RenderStepped:Connect(function(DeltaTime)
 		if not Client.plam or not Client.playing or (ClientObj:FindFirstChild("title") and ClientObj.title.Playing) then
 			return
@@ -156,8 +233,10 @@ function Start(ClientObj)
 								PoseLerp = math.clamp(DeltaTime * 5, 0, 1/10)
 								if RGBNames then
 									FakeModel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV((os.clock()/8)%1,1,1)
+									FakeModel.head.BillboardGui.TextLabel.TextStrokeColor3 = Color3.fromHSV((os.clock()/8)%1,1,0.6470588235294118)
 								else
 									FakeModel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV(0,0,1)
+									FakeModel.head.BillboardGui.TextLabel.TextStrokeColor3 = Color3.fromHSV(0,0,0.6470588235294118)
 								end
 							else
 								PoseLerp = DeltaTime
@@ -261,6 +340,9 @@ function Start(ClientObj)
 								hats
 							]]
 							Client.trsCF(NewFakeModel, PlamObj.health.Value, 0, PlamObj.hasfly.Value, PlamObj.hasboard.Value, PlamObj.hat.Value, PlamObj.bees.Value, PlamObj.hasflame.Value, PlamObj.hastoy.Value)
+							local BeeboTextSound = ClientObj.text:Clone()
+							BeeboTextSound.Parent = NewFakeModel.head
+							BeeboTextSound.Name = "BeeboTextSound"
 						end
 					end
 				end)
@@ -276,6 +358,13 @@ _G.BetterReplication.NewPlayerScript = game:GetService("Players").LocalPlayer:Wa
 	if Client.Name == "CharacterScript" then
 		if _G.BetterReplication.Render then
 			_G.BetterReplication.Render:Disconnect()
+		end
+		if _G.BetterReplication.Chat then
+			_G.BetterReplication.PlayerAdded:Disconnect()
+			_G.BetterReplication.PlayerRemoved:Disconnect()
+			for _,ChatEvent in pairs(_G.BetterReplication.Chat) do
+				ChatEvent:Disconnect()
+			end
 		end
 		Start(Client)
 	end
