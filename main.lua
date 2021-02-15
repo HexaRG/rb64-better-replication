@@ -406,7 +406,7 @@ local function Start(ClientObj)
 			end))
 		end
 	end
-	ModifyTitle()
+	coroutine.resume(coroutine.create(ModifyTitle))
 	table.insert(_G.BetterReplication.Events,Client.UI.title.Changed:Connect(ModifyTitle))
 	game.ReplicatedFirst:RemoveDefaultLoadingScreen()
 	-- Renames the replicate remote to prevent the CharacterScript from replicating
@@ -420,14 +420,14 @@ local function Start(ClientObj)
 		local fakeplams = Instance.new("Folder",workspace)
 		workspace:WaitForChild("plam").Name = "realplam"
 		fakeplams.Name = "plam"
-		workspace.realplam.ChildRemoved:connect(function(plam)
-			if workspace.fakes:FindFirstChild(plam.Name) then
-				local FakeModel = workspace.fakes[plam.Name]
-				Client.particle("cloud", 8, true, FakeModel.torso.CFrame)
-				FakeModel:Destroy()
-			end
-		end)
 	end
+	table.insert(_G.BetterReplication.Events,workspace.realplam.ChildRemoved:connect(function(plam)
+		if workspace.fakes:FindFirstChild(plam.Name) then
+			local FakeModel = workspace.fakes[plam.Name]
+			Client.particle("cloud", 8, true, FakeModel.torso.CFrame)
+			FakeModel:Destroy()
+		end
+	end))
 	local SpecialPlayers = {} -- Stores all of the known players using this script (SpecialDetectionNum must be the same on your client and their client)
 	local Stomp = 0
 	local Stomped = 0
