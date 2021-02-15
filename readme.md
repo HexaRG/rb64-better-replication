@@ -1,5 +1,7 @@
 *Basically just makes robot 64 better*
 
+**Note**: This script currently only works with Synapse X
+
 **Features:** 
 - Smoother replication
 - Chat bubbles
