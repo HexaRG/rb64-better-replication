@@ -8,49 +8,49 @@ local DefaultConfig = {
 	Glitchy = {
 		Type = "bool";
 		Val = false;
-		Desc = "Makes it look like you're glitchy (this will not show on your client)";
+		Desc = "Makes it look like you're glitchy (This will not show on your client)";
 		Hidden = true;
 	};
 	ShowLocalPlayer = {
 		Type = "bool";
 		Val = false;
-		Desc = "Creates a fake of yourself (Debug)";
+		Desc = "Renders yourself (Debug)";
 		Hidden = true;
 	};
 	BetterDotAnimation = {
 		Type = "bool";
 		Val = true;
-		Desc = "Improves the dot animation to no longer be static";
+		Desc = "When enabled other players will have animated dots on their heads";
 		Hidden = false;
 	};
 	DotRangeCap = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether to check the distance from the dot and the players head and cap it";
+		Desc = "When enabled the script checks the distance from the dot and the players head and limits it to \"Config.DotRange\"";
 		Hidden = true;
 	};
 	DotRange = {
 		Type = "num";
 		Val = 2;
-		Desc = "The maximum distance that the dot can go";
+		Desc = "The maximum distance the dot can reach";
 		Hidden = true;
 	};
 	SpecialDetectionNum = {
 		Type = "num";
 		Val = 385;
-		Desc = "Used to detect if a player is using the script, it works by spoofing the health as the number that is specified if the health is at the max";
+		Desc = "Used to detect if a player is using the script, it works by spoofing the health as the specified number if the health is at the max (4)";
 		Hidden = true;
 	};
 	RGBNames = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether or not players using this script should have Rainbow names";
+		Desc = "When enabled players using this script will have Rainbow names";
 		Hidden = false;
 	};
 	ReplicationErrorsReported = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether or not to log plam errors";
+		Desc = "Logs plam errors to the console (F9)";
 		Hidden = false;
 	};
 	Hide = {
@@ -81,25 +81,25 @@ local DefaultConfig = {
 				Hidden = false;
 			};
 		};
-		Desc = "Whether or not to hide other players when they're in these states";
+		Desc = "Which conditions should cause players to be hidden";
 		Hidden = true;
 	};
 	HidePlayers = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether or not to hide other players";
+		Desc = "When this is enabled players will be hidden if they're not in the same map/room";
 		Hidden = true;
 	};
 	PlayerCollisions = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether or not other players can push you";
+		Desc = "When this is enable other players can push you";
 		Hidden = false;
 	};
 	PlayerDamage = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether or not you can take or deal damage to other players (you can only damage players using this script)";
+		Desc = "When this is enabled you can take or deal damage to other players (you can only damage players using this script)";
 		Hidden = false;
 	};
 	DamageFlashing = {
@@ -142,21 +142,26 @@ local DefaultConfig = {
 				Hidden = false;
 			};
 		};
-		Desc = "all of the face textures";
+		Desc = "All of the face textures";
 		Hidden = false;
 	};
 	AlwaysReplicate = {
 		Type = "bool";
 		Val = false;
-		Desc = "Whether or not to always replicate even if the Client is paused";
+		Desc = "Always replicate even if the Client is paused";
 		Hidden = true;
 	};
 	ChatBubbles = {
 		Type = "bool";
 		Val = true;
-		Desc = "Whether or not to enable chat bubbles";
+		Desc = "Enable chat bubbles";
 		Hidden = false;
 	};
+	ShowAllSettings = {
+		Type = "bool";
+		Val = false;
+		Desc = "When this is disabled some config items will be hidden";
+	}
 }
 
 local Config = DefaultConfig
@@ -249,16 +254,17 @@ local function RenderConfigItems(Client,ConfigsFrame,ConfigTable)
 	local ListLayout = Instance.new("UIListLayout",ConfigsFrame)
 	ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	ListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	ListLayout.Padding = UDim.new(0.02,0)
 	local Counter = 0
 	for Key,ConfigItem in pairs(ConfigTable) do
-		if not ConfigItem.Hidden then
+		if not ConfigItem.Hidden or Config.ShowAllSettings.Val then
 			local Setting = Client.UI.title["continue"]:Clone()
 			UpdateSettingName(Key,ConfigItem,Setting)
 			Setting.Parent = ConfigsFrame
 			Setting.spin.Visible = false
 			Setting.spin.Position = UDim2.new(-0.4, 0,0, 0)
 			Setting.LayoutOrder = Counter + 1
-			Setting.Size = UDim2.new(0.5,0,0.06,0)
+			Setting.Size = UDim2.new(0.5,0,0.03,0)
 			ApplySettingItemColors(Key,ConfigItem,Setting)
 			Counter += 1
 			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseButton1Click:connect(function()
@@ -275,8 +281,19 @@ local function RenderConfigItems(Client,ConfigsFrame,ConfigTable)
 					ApplySettingItemColors(Key,ConfigItem,Setting)
 				end
 			end))
+			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseLeave:connect(function()
+				ConfigsFrame.Parent.version.BackgroundTransparency = 1
+				ConfigsFrame.Parent.version.Text = ""
+			end))
 			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseEnter:connect(function()
 				Client.selt = Setting.LayoutOrder
+				ConfigsFrame.Parent:WaitForChild("version").Size = UDim2.new(1,0,0.02,0)
+				ConfigsFrame.Parent.version.Text = ConfigItem.Desc
+				ConfigsFrame.Parent.version.Size = UDim2.new(0,ConfigsFrame.Parent.version.TextBounds.X,0,ConfigsFrame.Parent.version.TextBounds.Y)
+				ConfigsFrame.Parent.version.BackgroundTransparency = 0.5
+				ConfigsFrame.Parent.version.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
+				ConfigsFrame.Parent.version.AnchorPoint = Vector2.new(0.5,0.5)
+				ConfigsFrame.Parent.version.ZIndex = 100
 			end))
 		end
 	end
@@ -315,7 +332,8 @@ local function Start(ClientObj)
 			ConfigMenu:WaitForChild("testing"):Destroy()
 			ConfigMenu:WaitForChild("speedrun"):Destroy()
 			ConfigMenu:WaitForChild("new"):Destroy()
-			ConfigMenu:WaitForChild("version"):Destroy()
+			ConfigMenu:WaitForChild("version").Text = ""
+			ConfigMenu:WaitForChild("version").Size = UDim2.new(1,0,0.2,0)
 			ConfigMenu.Visible = false
 			local ConfigsFrame = Instance.new("Frame",ConfigMenu)
 			ConfigsFrame.Size = UDim2.new(0.5,0,1,0)
@@ -335,7 +353,6 @@ local function Start(ClientObj)
 				end
 				Client.transition(true)
 				ClientObj.store:Stop()
-				wait(0.5)
 				Client.UI:WaitForChild("title").Visible = false
 				workspace.title.logo.Transparency = 0
 				ClientObj.title:Play()
@@ -360,7 +377,6 @@ local function Start(ClientObj)
 				Client.selt = 4
 				Client.transition(true)
 				ClientObj.title:Stop()
-				wait(0.5)
 				Client.UI:WaitForChild("title").Visible = false
 				workspace.title.logo.Transparency = 1
 				ClientObj.store.Volume = 1
@@ -382,6 +398,7 @@ local function Start(ClientObj)
 							Obj.spin.Visible = Client.selt == Obj.LayoutOrder
 						end
 					end
+					ConfigMenu.version.Position = Client.UI.cursor.Position
 				end
 				if Client.UI.title.Visible or ConfigMenu.Visible then
 					Client.UI.UI.Visible = false
@@ -505,11 +522,11 @@ local function Start(ClientObj)
 					PlamObj.Value = ReplicationTable[PlamObj.Name]
 				end
 				if typeof(ReplicationTable[PlamObj.Name]) == "boolean" and math.random(1,100) == 1 then
-					ReplicationTable[PlamObj.Name] = not ReplicationTable[v.Name]
+					ReplicationTable[PlamObj.Name] = not ReplicationTable[PlamObj.Name]
 					PlamObj.Value = ReplicationTable[PlamObj.Name]
 				end
 				if typeof(ReplicationTable[PlamObj.Name]) == "number" and math.random(1,10) == 1 then
-					ReplicationTable[PlamObj.Name] = ReplicationTable[v.Name] + math.random(-2,2)
+					ReplicationTable[PlamObj.Name] = ReplicationTable[PlamObj.Name] + math.random(-2,2)
 					PlamObj.Value = ReplicationTable[PlamObj.Name]
 				end
 			end
@@ -530,7 +547,7 @@ local function Start(ClientObj)
 			end
 			if PlamObj.Name ~= Client.lp.Name or Config.ShowLocalPlayer.Val then
 				local Success,Error = pcall(function()
-					if PlamObj.health.Value == SpecialDetectionNum then
+					if PlamObj.health.Value == Config.SpecialDetectionNum.Val then
 						SpecialPlayers[PlamObj.Name] = true
 					end
 					if (PlamObj.mps.Value.p - Client.tpc.p).Magnitude < Client.rendist or true then
@@ -612,7 +629,7 @@ local function Start(ClientObj)
                                 end
 							end
 							-- Update the face texture
-							local DesiredFaceTexture = (Config.FaceIds.Val[PlamObj.faceid.Value] or Config.Val.FaceIds[1]).Val
+							local DesiredFaceTexture = (Config.FaceIds.Val[PlamObj.faceid.Value] or Config.FaceIds.Val[1]).Val
 							FakeModel.head.face.Texture = DesiredFaceTexture
 							if PlamObj.faceid.Value == 3 then
 								--Enable damage flashing if the hurt face is detected
