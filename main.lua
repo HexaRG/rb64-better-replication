@@ -4,33 +4,171 @@ repeat game:GetService("RunService").RenderStepped:Wait() until game:GetService(
 
 --//Config
 
-local Glitchy = false -- Makes it look like you're glitchy (this will not show on your client)
-local ShowLocalPlayer = false -- Creates a fake of yourself (Debug)
-local BetterDotAnimation = true -- Improves the dot animation to no longer be static
-local DotRangeCap = true -- Whether to check the distance from the dot and the players head and cap it
-local DotRange = 2 -- The maximum distance that the dot can go
-local SpecialDetectionNum = 385 -- This is used to detect if a player is using the script, it works by spoofing the health as the number that is specified if the health at the max
-local RGBNames = true -- Whether or not players using this script should have Rainbow names
-local ReplicationErrorsReported = true -- Whether or not to log plam errors
-local Hide = { -- Whether or not to hide other players when they're in these states
-	Credits = true;
-	LevelEditor = false;
-	Boss = true;
-	OtherRooms = true;
+local DefaultConfig = {
+	Glitchy = {
+		Type = "bool";
+		Val = false;
+		Desc = "Makes it look like you're glitchy (this will not show on your client)";
+		Hidden = true;
+	};
+	ShowLocalPlayer = {
+		Type = "bool";
+		Val = false;
+		Desc = "Creates a fake of yourself (Debug)";
+		Hidden = true;
+	};
+	BetterDotAnimation = {
+		Type = "bool";
+		Val = true;
+		Desc = "Improves the dot animation to no longer be static";
+		Hidden = false;
+	};
+	DotRangeCap = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether to check the distance from the dot and the players head and cap it";
+		Hidden = true;
+	};
+	DotRange = {
+		Type = "num";
+		Val = 2;
+		Desc = "The maximum distance that the dot can go";
+		Hidden = true;
+	};
+	SpecialDetectionNum = {
+		Type = "num";
+		Val = 385;
+		Desc = "Used to detect if a player is using the script, it works by spoofing the health as the number that is specified if the health is at the max";
+		Hidden = true;
+	};
+	RGBNames = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether or not players using this script should have Rainbow names";
+		Hidden = false;
+	};
+	ReplicationErrorsReported = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether or not to log plam errors";
+		Hidden = false;
+	};
+	Hide = {
+		Type = "tbl";
+		Val = {
+			Credits = {
+				Type = "bool";
+				Val = true;
+				Desc = "";
+				Hidden = false;
+			};
+			LevelEditor = {
+				Type = "bool";
+				Val = true;
+				Desc = "";
+				Hidden = false;
+			};
+			Boss = {
+				Type = "bool";
+				Val = true;
+				Desc = "";
+				Hidden = false;
+			};
+			OtherRooms = {
+				Type = "bool";
+				Val = true;
+				Desc = "";
+				Hidden = false;
+			};
+		};
+		Desc = "Whether or not to hide other players when they're in these states";
+		Hidden = true;
+	};
+	HidePlayers = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether or not to hide other players";
+		Hidden = true;
+	};
+	PlayerCollisions = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether or not other players can push you";
+		Hidden = false;
+	};
+	PlayerDamage = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether or not you can take or deal damage to other players (you can only damage players using this script)";
+		Hidden = false;
+	};
+	DamageFlashing = {
+		Type = "bool";
+		Val = true;
+		Desc = "Implements a damage flashing animation when other playes take damage";
+		Hidden = false;
+	};
+	FaceIds = {
+		Type = "tbl";
+		Val = {
+			{
+				Type = "txt";
+				Val = "rbxassetid://1451094768";
+				Desc = "Default";
+				Hidden = false;
+			};
+			{
+				Type = "txt";
+				Val = "rbxassetid://1451124286";
+				Desc = "Happy";
+				Hidden = false;
+			};
+			{
+				Type = "txt";
+				Val = "rbxassetid://1451124533";
+				Desc = "Hurt";
+				Hidden = false;
+			};
+			{
+				Type = "txt";
+				Val = "rbxassetid://1451125125";
+				Desc = "Blink 1";
+				Hidden = false;
+			};
+			{
+				Type = "txt";
+				Val = "rbxassetid://1451125369";
+				Desc = "Blink 2";
+				Hidden = false;
+			};
+		};
+		Desc = "all of the face textures";
+		Hidden = false;
+	};
+	AlwaysReplicate = {
+		Type = "bool";
+		Val = false;
+		Desc = "Whether or not to always replicate even if the Client is paused";
+		Hidden = true;
+	};
+	ChatBubbles = {
+		Type = "bool";
+		Val = true;
+		Desc = "Whether or not to enable chat bubbles";
+		Hidden = false;
+	};
 }
-local HidePlayers = true -- Whether or not to hide other players
-local PlayerCollisions = true -- Whether or not other players can push you
-local PlayerDamage = true -- Whether or not you can take or deal damage to other players (you can only damage players using this script)
-local DamageFlashing = true -- Implements a damage flashing animation
-local FaceIds = { -- Stores all of the face textures
-	"rbxassetid://1451094768"; -- Default Face
-	"rbxassetid://1451124286"; -- Happy Face
-	"rbxassetid://1451124533"; -- Hurt Face
-	"rbxassetid://1451125125"; -- Blink 1 
-	"rbxassetid://1451125369"; -- Blink 2
-}
-local AlwaysReplicate = false -- Whether or not to always replicate even if the Client is paused
-local ChatBubbles = true -- Whether or not to enable chat bubbles
+
+local Config = DefaultConfig
+
+if isfile("rb64br/config.json") then
+	local LoadedConfig = game:GetService("HttpService"):JSONDecode(readfile("rb64br/config.json"))
+	for Key,Val in pairs(LoadedConfig) do
+		Config[Key] = Val
+	end
+else
+	writefile("rb64br/config.json",game:GetService("HttpService"):JSONEncode(DefaultConfig))
+end
 
 --//Code
 
@@ -45,6 +183,16 @@ if _G.BetterReplication then
 	if _G.BetterReplication.PlayerRemoved then
 		_G.BetterReplication.PlayerRemoved:Disconnect()
 	end
+	if _G.BetterReplication.Events then
+		for _,Event in pairs(_G.BetterReplication.Events) do
+			Event:Disconnect()
+		end
+	end
+	if _G.BetterReplication.ConfigEvents then
+		for _,Event in pairs(_G.BetterReplication.ConfigEvents) do
+			Event:Disconnect()
+		end
+	end
 	if _G.BetterReplication.Chat then
 		for _,ChatEvent in pairs(_G.BetterReplication.Chat) do
 			ChatEvent:Disconnect()
@@ -58,7 +206,7 @@ else
 end
 
 -- Attempts to get the script environment, if it fails wait 1 frame
-function TryGetSenv(Obj)
+local function TryGetSenv(Obj)
 	local Senv
 	pcall(function()
 		Senv = getsenv(Obj)
@@ -70,10 +218,179 @@ function TryGetSenv(Obj)
 	end
 end
 
-function Start(ClientObj)
+local function UpdateSettingName(Key,ConfigItem,Setting)
+	Setting.Text = Key .. ": " .. tostring(ConfigItem.Val)
+	Setting.outline.Text = Setting.Text
+end
+
+local function ApplySettingItemColors(Key,ConfigItem,Setting)
+	if ConfigItem.Type == "bool" then
+		if ConfigItem.Val then
+			Setting.TextColor3 = Color3.fromRGB(66, 245, 81)
+		else
+			Setting.TextColor3 = Color3.fromRGB(245, 69, 66)
+		end
+	elseif ConfigItem.Type == "tbl" then
+		Setting.TextColor3 = Color3.fromRGB(66, 108, 245)
+	elseif ConfigItem.Type == "txt" then
+		Setting.TextColor3 = Color3.fromRGB(179, 66, 245)
+	end
+end
+
+local CustomBackAction = nil
+
+local function RenderConfigItems(Client,ConfigsFrame,ConfigTable)
+	if _G.BetterReplication.ConfigEvents then
+		for _,Event in pairs(_G.BetterReplication.ConfigEvents) do
+			Event:Disconnect()
+		end
+	end
+	ConfigsFrame:ClearAllChildren()
+	local ListLayout = Instance.new("UIListLayout",ConfigsFrame)
+	ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	ListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	local Counter = 0
+	for Key,ConfigItem in pairs(ConfigTable) do
+		if not ConfigItem.Hidden then
+			local Setting = Client.UI.title["continue"]:Clone()
+			UpdateSettingName(Key,ConfigItem,Setting)
+			Setting.Parent = ConfigsFrame
+			Setting.spin.Visible = false
+			Setting.spin.Position = UDim2.new(-0.4, 0,0, 0)
+			Setting.LayoutOrder = Counter + 1
+			Setting.Size = UDim2.new(0.5,0,0.06,0)
+			ApplySettingItemColors(Key,ConfigItem,Setting)
+			Counter += 1
+			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseButton1Click:connect(function()
+				if ConfigItem.Type == "bool" then
+					ConfigItem.Val = not ConfigItem.Val
+				end
+				if ConfigItem.Type == "tbl" then
+					RenderConfigItems(Client,ConfigsFrame,ConfigItem.Val)
+					CustomBackAction = function()
+						RenderConfigItems(Client,ConfigsFrame,ConfigTable)
+					end
+				else
+					UpdateSettingName(Key,ConfigItem,Setting)
+					ApplySettingItemColors(Key,ConfigItem,Setting)
+				end
+			end))
+			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseEnter:connect(function()
+				Client.selt = Setting.LayoutOrder
+			end))
+		end
+	end
+end
+
+local function Start(ClientObj)
 	local Client
 	-- Get the client script environment
 	repeat Client = TryGetSenv(ClientObj) until Client ~= nil
+	--Wait for the client to load
+	repeat game:GetService("RunService").RenderStepped:Wait() until not _G.loading
+	repeat game:GetService("RunService").RenderStepped:Wait() until Client.UI
+	_G.BetterReplication.Events = {}
+	_G.BetterReplication.ConfigEvents = {}
+	local function ModifyTitle()
+		if Client.moddedtitle then
+			return
+		end
+		print("title: " .. tostring(Client.UI:WaitForChild("title").Visible))
+		--Check if the title screen is active
+		if Client.UI:WaitForChild("title").Visible then
+			Client.moddedtitle = true
+			local ConfigOption = Client.UI.title["continue"]:Clone()
+			ConfigOption.Name = "config"
+			ConfigOption.Position = Client.UI.title.testing.Position
+			ConfigOption.Size = Client.UI.title.testing.Size
+			ConfigOption.Text = "rb64-br Config"
+			ConfigOption.outline.Text = "rb64-br Config"
+			ConfigOption.Parent = Client.UI.title
+			ConfigOption.spin.Visible = false
+			ConfigOption.spin.Position = UDim2.new(-0.4, 0,0, 0)
+			local ConfigMenu = Client.UI.title:Clone()
+			ConfigMenu.Parent = Client.UI
+			ConfigMenu.Name = "rb64br_config"
+			ConfigMenu:WaitForChild("continue"):Destroy()
+			ConfigMenu:WaitForChild("testing"):Destroy()
+			ConfigMenu:WaitForChild("speedrun"):Destroy()
+			ConfigMenu:WaitForChild("new"):Destroy()
+			ConfigMenu:WaitForChild("version"):Destroy()
+			ConfigMenu.Visible = false
+			local ConfigsFrame = Instance.new("Frame",ConfigMenu)
+			ConfigsFrame.Size = UDim2.new(0.5,0,1,0)
+			ConfigsFrame.AnchorPoint = Vector2.new(0.5,0.5)
+			ConfigsFrame.Position = UDim2.new(0.5,0,0.5,0)
+			ConfigsFrame.BorderSizePixel = 0
+			ConfigsFrame.BackgroundTransparency = 1
+			local Back = ConfigMenu:WaitForChild("config")
+			Back.Name = "back"
+			Back.Text = "Back"
+			Back.outline.Text = "Back"
+			table.insert(_G.BetterReplication.Events,Back.MouseButton1Click:connect(function()
+				if CustomBackAction then
+					CustomBackAction()
+					CustomBackAction = nil
+					return
+				end
+				Client.transition(true)
+				ClientObj.store:Stop()
+				wait(0.5)
+				Client.UI:WaitForChild("title").Visible = false
+				workspace.title.logo.Transparency = 0
+				ClientObj.title:Play()
+				ClientObj.store.Volume = 0
+				ConfigMenu.Visible = false
+				Client.UI.title.Visible = true
+				Client.transition(false)
+				writefile("rb64br/config.json",game:GetService("HttpService"):JSONEncode(Config))
+				if _G.BetterReplication.ConfigEvents then
+					for _,Event in pairs(_G.BetterReplication.ConfigEvents) do
+						Event:Disconnect()
+					end
+				end
+			end))
+			table.insert(_G.BetterReplication.Events,ConfigOption.MouseEnter:connect(function()
+				Client.selt = 4
+			end))
+			table.insert(_G.BetterReplication.Events,Back.MouseEnter:connect(function()
+				Client.selt = 0
+			end))
+			table.insert(_G.BetterReplication.Events,ConfigOption.MouseButton1Click:connect(function()
+				Client.selt = 4
+				Client.transition(true)
+				ClientObj.title:Stop()
+				wait(0.5)
+				Client.UI:WaitForChild("title").Visible = false
+				workspace.title.logo.Transparency = 1
+				ClientObj.store.Volume = 1
+				ClientObj.store:Play()
+				ConfigMenu.Visible = true
+				local Counter = 0
+				RenderConfigItems(Client,ConfigsFrame,Config)
+				Client.transition(false)
+			end))
+			table.insert(_G.BetterReplication.Events,game:GetService("RunService").RenderStepped:Connect(function()
+				ConfigOption.spin.Visible = Client.selt == 4
+				ConfigOption.spin.Rotation = (tick() - Client.btntick) * 80
+				Back.spin.Visible = Client.selt == 0
+				Back.spin.Rotation = ConfigOption.spin.Rotation
+				if ConfigMenu.Visible then
+					for _,Obj in pairs(ConfigsFrame:GetChildren()) do
+						if Obj:IsA("TextButton") then
+							Obj.spin.Rotation = ConfigOption.spin.Rotation
+							Obj.spin.Visible = Client.selt == Obj.LayoutOrder
+						end
+					end
+				end
+				if Client.UI.title.Visible or ConfigMenu.Visible then
+					Client.UI.UI.Visible = false
+				end
+			end))
+		end
+	end
+	ModifyTitle()
+	table.insert(_G.BetterReplication.Events,Client.UI.title.Changed:Connect(ModifyTitle))
 	game.ReplicatedFirst:RemoveDefaultLoadingScreen()
 	-- Renames the replicate remote to prevent the CharacterScript from replicating
 	if not workspace:WaitForChild("share"):FindFirstChild("ActualReplicate") then
@@ -97,14 +414,14 @@ function Start(ClientObj)
 	local SpecialPlayers = {} -- Stores all of the known players using this script (SpecialDetectionNum must be the same on your client and their client)
 	local Stomp = 0
 	local Stomped = 0
-	if ChatBubbles then
+	if Config.ChatBubbles.Val then
 		_G.BetterReplication.Chat = {}
 		local function PlayerAdded(Player)
 			if Player == Client.lp then
 				return
 			end
 			_G.BetterReplication.Chat[Player] = Player.Chatted:Connect(function(Message)
-				local FakeModel = workspace.fakes[Player.Name]
+				local FakeModel = workspace.fakes:FindFirstChild(Player.Name)
 				if FakeModel then
 					local Plam = workspace.realplam[Player.Name]
 					local TalkRs = game:GetService("RunService").RenderStepped:Connect(function()
@@ -150,7 +467,9 @@ function Start(ClientObj)
 			end)
 		end
 		local function PlayerRemoved(Player)
-			_G.BetterReplication.Chat[Player]:Disconnect()
+			if _G.BetterReplication.Chat[Player] then
+				_G.BetterReplication.Chat[Player]:Disconnect()
+			end
 		end
 		_G.BetterReplication.PlayerAdded = game:GetService("Players").PlayerAdded:Connect(PlayerAdded)
 		_G.BetterReplication.PlayerRemoved = game:GetService("Players").PlayerRemoving:Connect(PlayerRemoved)
@@ -167,7 +486,7 @@ function Start(ClientObj)
 			if PlamObj.Name == "health" then
 				if PlamObj.Value == 4 then
 					--Spoof the health so other clients can detect the script
-					PlamObj.Value = SpecialDetectionNum
+					PlamObj.Value = Config.SpecialDetectionNum.Val
 				end
 			end
 			if PlamObj.Name == "faceid" and Stomp-os.clock() >= 0 then
@@ -176,7 +495,7 @@ function Start(ClientObj)
 			end
 			ReplicationTable[PlamObj.Name] = PlamObj.Value
 		end
-		if Glitchy then
+		if Config.Glitchy.Val then
 			local PlamBackup = {}
 			
 			for _, PlamObj in pairs(Client.plam:GetChildren()) do
@@ -200,13 +519,16 @@ function Start(ClientObj)
 				PlamObj.Value = BackupValue
 			end
 		end
-		if not Client.paused or AlwaysReplicate then
+		if not Client.paused or Config.AlwaysReplicate.Val then
 			workspace.share.ActualReplicate:FireServer(Client.plam, ReplicationTable)
 		end
 		local MPSLerpAlpha = DeltaTime * 5 or DeltaTime
 		local PoseLerp = DeltaTime
 		for _, PlamObj in pairs(workspace.realplam:GetChildren()) do
-			if PlamObj.Name ~= Client.lp.Name or ShowLocalPlayer then
+			if not Client.tpc then
+				return
+			end
+			if PlamObj.Name ~= Client.lp.Name or Config.ShowLocalPlayer.Val then
 				local Success,Error = pcall(function()
 					if PlamObj.health.Value == SpecialDetectionNum then
 						SpecialPlayers[PlamObj.Name] = true
@@ -215,14 +537,14 @@ function Start(ClientObj)
 						PlamObj.mps.lerp.Value = PlamObj.mps.lerp.Value:Lerp(PlamObj.mps.Value, MPSLerpAlpha)
 						local ValidMap = string.sub(PlamObj.map.Value,1,#Client.map.Name) == Client.map.Name
 						local ValidRoom = PlamObj.map.Value ~= Client.map.Name .. (Client.room or (Client.levelid or ""))
-						if HidePlayers and ( (ValidRoom or (ValidMap and not Hide.OtherRooms) ) or (PlamObj.map.Value == "Boss" and Hide.Boss) or (PlamObj.map.Value == "credits" and Hide.Credits) or (PlamObj.map.Value == "MAKE" and Hide.LevelEditor) ) then
+						if Config.HidePlayers.Val and ( (ValidRoom or (ValidMap and not Config.Hide.Val.OtherRooms.Val) ) or (PlamObj.map.Value == "Boss" and Config.Hide.Val.Boss.Val) or (PlamObj.map.Value == "credits" and Config.Hide.Val.Credits.Val) or (PlamObj.map.Value == "MAKE" and Config.Hide.Val.LevelEditor.Val) ) then
 							if workspace.fakes:FindFirstChild(PlamObj.Name) then
 								workspace.fakes[PlamObj.Name]:Destroy()
 								return
 							end
 						elseif workspace.fakes:FindFirstChild(PlamObj.Name) then
 							local FakeModel = workspace.fakes[PlamObj.Name]
-							if PlayerDamage and PlamObj.faceid.Value == 6 and not (Stomped-os.clock() >= 0) then
+							if Config.PlayerDamage.Val and PlamObj.faceid.Value == 6 and not (Stomped-os.clock() >= 0) then
 								--Detects if the player is attempting to deal damage (faceid:6)
 								if (FakeModel.torso.Position - Client.char.Position).Magnitude < 5 then
 									Stomped = os.clock()+.2
@@ -231,7 +553,7 @@ function Start(ClientObj)
 							end
 							if SpecialPlayers[PlamObj.Name] then
 								PoseLerp = math.clamp(DeltaTime * 5, 0, 1/10)
-								if RGBNames then
+								if Config.RGBNames.Val then
 									FakeModel.head.BillboardGui.TextLabel.TextColor3 = Color3.fromHSV((os.clock()/8)%1,1,1)
 									FakeModel.head.BillboardGui.TextLabel.TextStrokeColor3 = Color3.fromHSV((os.clock()/8)%1,1,0.6470588235294118)
 								else
@@ -243,7 +565,7 @@ function Start(ClientObj)
 							end
 							-- Pose the player model
 							Client.anim2(FakeModel, PlamObj, PoseLerp)
-							if not BetterDotAnimation then
+							if not Config.BetterDotAnimation.Val then
 								FakeModel.dot.CFrame = FakeModel.head.CFrame + Vector3.new(0, 2)
 							else
 								local TargetPosition = FakeModel.head.Position + FakeModel.head.CFrame.upVector * Client.tscale.Y * 2
@@ -251,7 +573,7 @@ function Start(ClientObj)
 								if FakeModel.dot.Position.Y < FakeModel.head.Position.Y + FakeModel.head.CFrame.upVector.Y * 1.5 then
 									FakeModel.dot.CFrame = FakeModel.dot.CFrame - FakeModel.dot.Position + Client.v2(FakeModel.dot.Position, FakeModel.head.Position.Y + FakeModel.head.CFrame.upVector.Y * 1.5)
 								end
-								if not (DotRange * Client.tscale.Y < (FakeModel.dot.Position - TargetPosition).Magnitude) or not DotRangeCap then
+								if not (Config.DotRange.Val * Client.tscale.Y < (FakeModel.dot.Position - TargetPosition).Magnitude) or not Config.DotRangeCap.Val then
 									FakeModel.dot.CFrame = FakeModel.dot.CFrame + FakeModel.dot.vel.Value * DeltaTime * 10
 								else
 									FakeModel.dot.CFrame = FakeModel.dot.CFrame - FakeModel.dot.CFrame.p + TargetPosition + CFrame.new(TargetPosition, FakeModel.dot.Position).lookVector * 1.9 * Client.tscale.Y
@@ -279,22 +601,22 @@ function Start(ClientObj)
 							end
 							-- Push beebo if PlayerCollisions is enabled
 							if (FakeModel.torso.Position - Client.char.Position).Magnitude < 5 then
-                                if PlayerCollisions then
+                                if Config.PlayerCollisions.Val then
                                     local push = Client.v2(Client.char.Position - FakeModel.torso.Position) * (DeltaTime*60)
                                     Client.char.Velocity += push
                                 end
-                                if PlayerDamage and not Client.ground and not (Stomp-os.clock() >= 0) then
+                                if Config.PlayerDamage.Val and not Client.ground and not (Stomp-os.clock() >= 0) then
                                     Client.char.Velocity = Client.v2(Client.char.Velocity, 30)
 									FakeModel.torso.damage:Play()
 									Stomp = os.clock()+.2
                                 end
 							end
 							-- Update the face texture
-							local DesiredFaceTexture = FaceIds[PlamObj.faceid.Value] or FaceIds[1]
+							local DesiredFaceTexture = (Config.FaceIds.Val[PlamObj.faceid.Value] or Config.Val.FaceIds[1]).Val
 							FakeModel.head.face.Texture = DesiredFaceTexture
 							if PlamObj.faceid.Value == 3 then
 								--Enable damage flashing if the hurt face is detected
-                                if DamageFlashing then
+                                if Config.DamageFlashing.Val then
                                     local t = 0
                                     if (os.clock()*6)%1 > .5 then
                                         t = 1
@@ -307,7 +629,7 @@ function Start(ClientObj)
                                 end
 							else
 								--Revert the damage flashing transparency
-                                if DamageFlashing then
+                                if Config.DamageFlashing.Val then
                                     for i, v in pairs(FakeModel:GetChildren()) do
                                         if v.Name ~= "trs" then
                                             v.Transparency = 0
@@ -346,7 +668,7 @@ function Start(ClientObj)
 						end
 					end
 				end)
-				if not Success and ReplicationErrorsReported then
+				if not Success and Config.ReplicationErrorsReported.Val then
 					warn(Error)
 				end
 			end
@@ -364,6 +686,16 @@ _G.BetterReplication.NewPlayerScript = game:GetService("Players").LocalPlayer:Wa
 			_G.BetterReplication.PlayerRemoved:Disconnect()
 			for _,ChatEvent in pairs(_G.BetterReplication.Chat) do
 				ChatEvent:Disconnect()
+			end
+		end
+		if _G.BetterReplication.Events then
+			for _,Event in pairs(_G.BetterReplication.Events) do
+				Event:Disconnect()
+			end
+		end
+		if _G.BetterReplication.ConfigEvents then
+			for _,Event in pairs(_G.BetterReplication.ConfigEvents) do
+				Event:Disconnect()
 			end
 		end
 		Start(Client)
