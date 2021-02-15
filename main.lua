@@ -239,6 +239,8 @@ local function ApplySettingItemColors(Key,ConfigItem,Setting)
 		Setting.TextColor3 = Color3.fromRGB(66, 108, 245)
 	elseif ConfigItem.Type == "txt" then
 		Setting.TextColor3 = Color3.fromRGB(179, 66, 245)
+	elseif ConfigItem.Type == "num" then
+		Setting.TextColor3 = Color3.fromRGB(237, 148, 64)
 	end
 end
 
@@ -282,18 +284,18 @@ local function RenderConfigItems(Client,ConfigsFrame,ConfigTable)
 				end
 			end))
 			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseLeave:connect(function()
-				ConfigsFrame.Parent.version.BackgroundTransparency = 1
-				ConfigsFrame.Parent.version.Text = ""
+				ConfigsFrame.Parent.tooltip.BackgroundTransparency = 1
+				ConfigsFrame.Parent.tooltip.Text = ""
 			end))
 			table.insert(_G.BetterReplication.ConfigEvents,Setting.MouseEnter:connect(function()
 				Client.selt = Setting.LayoutOrder
-				ConfigsFrame.Parent:WaitForChild("version").Size = UDim2.new(1,0,0.02,0)
-				ConfigsFrame.Parent.version.Text = ConfigItem.Desc
-				ConfigsFrame.Parent.version.Size = UDim2.new(0,ConfigsFrame.Parent.version.TextBounds.X,0,ConfigsFrame.Parent.version.TextBounds.Y)
-				ConfigsFrame.Parent.version.BackgroundTransparency = 0.5
-				ConfigsFrame.Parent.version.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
-				ConfigsFrame.Parent.version.AnchorPoint = Vector2.new(0.5,0.5)
-				ConfigsFrame.Parent.version.ZIndex = 100
+				ConfigsFrame.Parent:WaitForChild("tooltip").Size = UDim2.new(1,0,0.02,0)
+				ConfigsFrame.Parent.tooltip.Text = ConfigItem.Desc
+				ConfigsFrame.Parent.tooltip.Size = UDim2.new(0,ConfigsFrame.Parent.tooltip.TextBounds.X,0,ConfigsFrame.Parent.tooltip.TextBounds.Y)
+				ConfigsFrame.Parent.tooltip.BackgroundTransparency = 0.5
+				ConfigsFrame.Parent.tooltip.BackgroundColor3 = Color3.new(0.2,0.2,0.2)
+				ConfigsFrame.Parent.tooltip.AnchorPoint = Vector2.new(0.5,0.5)
+				ConfigsFrame.Parent.tooltip.ZIndex = 100
 			end))
 		end
 	end
@@ -309,10 +311,10 @@ local function Start(ClientObj)
 	_G.BetterReplication.Events = {}
 	_G.BetterReplication.ConfigEvents = {}
 	local function ModifyTitle()
+		-- Dont modify the title if it's already modified
 		if Client.moddedtitle then
 			return
 		end
-		print("title: " .. tostring(Client.UI:WaitForChild("title").Visible))
 		--Check if the title screen is active
 		if Client.UI:WaitForChild("title").Visible then
 			Client.moddedtitle = true
@@ -332,8 +334,9 @@ local function Start(ClientObj)
 			ConfigMenu:WaitForChild("testing"):Destroy()
 			ConfigMenu:WaitForChild("speedrun"):Destroy()
 			ConfigMenu:WaitForChild("new"):Destroy()
-			ConfigMenu:WaitForChild("version").Text = ""
-			ConfigMenu:WaitForChild("version").Size = UDim2.new(1,0,0.2,0)
+			ConfigMenu:WaitForChild("version").Name = "tooltip"
+			ConfigMenu.tooltip.Text = ""
+			ConfigMenu.tooltip.Size = UDim2.new(1,0,0.2,0)
 			ConfigMenu.Visible = false
 			local ConfigsFrame = Instance.new("Frame",ConfigMenu)
 			ConfigsFrame.Size = UDim2.new(0.5,0,1,0)
@@ -352,20 +355,16 @@ local function Start(ClientObj)
 					return
 				end
 				Client.transition(true)
-				ClientObj.store:Stop()
-				Client.UI:WaitForChild("title").Visible = false
-				workspace.title.logo.Transparency = 0
-				ClientObj.title:Play()
-				ClientObj.store.Volume = 0
-				ConfigMenu.Visible = false
-				Client.UI.title.Visible = true
-				Client.transition(false)
+				print("Write rb64br/config.json")
 				writefile("rb64br/config.json",game:GetService("HttpService"):JSONEncode(Config))
+				print("Wrote rb64br/config.json")
 				if _G.BetterReplication.ConfigEvents then
 					for _,Event in pairs(_G.BetterReplication.ConfigEvents) do
 						Event:Disconnect()
 					end
 				end
+				workspace.title:Destroy()
+				Client._G.reset()
 			end))
 			table.insert(_G.BetterReplication.Events,ConfigOption.MouseEnter:connect(function()
 				Client.selt = 4
@@ -374,16 +373,22 @@ local function Start(ClientObj)
 				Client.selt = 0
 			end))
 			table.insert(_G.BetterReplication.Events,ConfigOption.MouseButton1Click:connect(function()
-				Client.selt = 4
 				Client.transition(true)
 				ClientObj.title:Stop()
+				if isfile("rb64br/config.json") then
+					local LoadedConfig = game:GetService("HttpService"):JSONDecode(readfile("rb64br/config.json"))
+					for Key,Val in pairs(LoadedConfig) do
+						Config[Key] = Val
+					end
+				else
+					writefile("rb64br/config.json",game:GetService("HttpService"):JSONEncode(DefaultConfig))
+				end
 				Client.UI:WaitForChild("title").Visible = false
 				workspace.title.logo.Transparency = 1
+				ConfigMenu.Visible = true
+				RenderConfigItems(Client,ConfigsFrame,Config)
 				ClientObj.store.Volume = 1
 				ClientObj.store:Play()
-				ConfigMenu.Visible = true
-				local Counter = 0
-				RenderConfigItems(Client,ConfigsFrame,Config)
 				Client.transition(false)
 			end))
 			table.insert(_G.BetterReplication.Events,game:GetService("RunService").RenderStepped:Connect(function()
@@ -398,7 +403,7 @@ local function Start(ClientObj)
 							Obj.spin.Visible = Client.selt == Obj.LayoutOrder
 						end
 					end
-					ConfigMenu.version.Position = Client.UI.cursor.Position
+					ConfigMenu.tooltip.Position = Client.UI.cursor.Position
 				end
 				if Client.UI.title.Visible or ConfigMenu.Visible then
 					Client.UI.UI.Visible = false
@@ -441,13 +446,15 @@ local function Start(ClientObj)
 				local FakeModel = workspace.fakes:FindFirstChild(Player.Name)
 				if FakeModel then
 					local Plam = workspace.realplam[Player.Name]
+					local LastFace = Plam.faceid.Value
 					local TalkRs = game:GetService("RunService").RenderStepped:Connect(function()
 						if (os.clock()*6)%1 > .5 then
 							Plam.faceid.Value = 2
 						else
-							Plam.faceid.Value = 1
+							Plam.faceid.Value = LastFace
 						end
 					end)
+					table.insert(_G.BetterReplication.Events,TalkRs)
 					if FakeModel.head:FindFirstChild("ChatBillboard") then
 						FakeModel.head.ChatBillboard:Destroy()
 					end
@@ -459,7 +466,7 @@ local function Start(ClientObj)
 					ChatBillboard.StudsOffset = Vector3.new(0,4,0)
 					local ChatText = Instance.new("TextLabel",ChatBillboard)
 					ChatText.Name = "ChatText"
-					ChatText.Text = Message
+					ChatText.Text = ""
 					ChatText.Font = Enum.Font.SourceSansBold
 					ChatText.TextScaled = true
 					ChatText.Size = UDim2.new(1,0,1,0)
@@ -467,15 +474,25 @@ local function Start(ClientObj)
 					ChatText.TextColor3 = Color3.fromHSV(0,0,1)
 					ChatText.TextStrokeColor3 = Color3.fromHSV(0,0,0.6470588235294118)
 					local Counter = 0
-					while Counter < #Message do
-						Counter += 1
-						local PitchVal = Client.map.settings:FindFirstChild("minor") and Client.min or Client.maj
-						FakeModel.head.BeeboTextSound.PlaybackSpeed = 2 ^ (PitchVal[math.random(#PitchVal)] / 12);
-						FakeModel.head.BeeboTextSound:Play()
-						wait(.15)
+					if not FakeModel:FindFirstChild("BeeboTextSound") then
+						local BeeboTextSound = ClientObj.text:Clone()
+						BeeboTextSound.Parent = FakeModel.head
+						BeeboTextSound.Name = "BeeboTextSound"
 					end
+					while Counter < #Message do
+						local Char = string.sub(Message,Counter,Counter)
+						ChatText.Text = ChatText.Text .. Char
+						Counter += 1
+						if Char ~= " " then
+							local PitchVal = Client.map.settings:FindFirstChild("minor") and Client.min or Client.maj
+							FakeModel.head.BeeboTextSound.PlaybackSpeed = 2 ^ (PitchVal[math.random(#PitchVal)] / 12)
+							FakeModel.head.BeeboTextSound:Play()
+							wait(.05)
+						end
+					end
+					ChatText.Text = Message
 					TalkRs:Disconnect()
-					Plam.faceid.Value = 1
+					Plam.faceid.Value = LastFace
 					wait(5)
 					if ChatBillboard then
 						ChatBillboard:Destroy()
