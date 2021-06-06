@@ -301,6 +301,45 @@ local function RenderConfigItems(Client,ConfigsFrame,ConfigTable)
 	end
 end
 
+local function Fade(Mode,ClientObj,Client)
+	local loop = Client.UI.loop
+	if Mode then
+		ClientObj.load1:Play()
+		loop.Visible = true
+	else
+		ClientObj.load2:Play()
+		loop.BackgroundTransparency = 1
+	end
+	local start = tick()
+	while true do
+		if tick() - start < 0.4 then
+
+		else
+			break
+		end
+		if Client.UI.AbsoluteSize.Y < Client.UI.AbsoluteSize.X then
+			loop.SizeConstraint = Enum.SizeConstraint.RelativeXX
+			loop.Position = UDim2.new(0, 0, 0, -36 + (Client.UI.AbsoluteSize.Y - Client.UI.AbsoluteSize.X) / 2)
+		else
+			loop.SizeConstraint = Enum.SizeConstraint.RelativeYY
+			loop.Position = UDim2.new(0, (Client.UI.AbsoluteSize.X - Client.UI.AbsoluteSize.Y) / 2, 0, -36)
+		end
+		local fadePosition = (Mode and 1 - (tick() - start) / 0.4 or (tick() - start) / 0.4) * 2
+		loop.center.Size = UDim2.new(fadePosition, 0, fadePosition, 0)
+		loop.center.Position = UDim2.new(0.5 - fadePosition / 2, 0, 0.5 - fadePosition / 2, 0)
+		loop.l.Size = UDim2.new(0.5 - fadePosition / 2, 1, 1, 1)
+		loop.r.Size = UDim2.new(-0.5 + fadePosition / 2, -1, 1, -1)
+		loop.u.Size = UDim2.new(1, 1, 0.5 - fadePosition / 2, 1)
+		loop.d.Size = UDim2.new(1, -1, -0.5 + fadePosition / 2, -1)
+		game:GetService("RunService").RenderStepped:Wait()
+	end
+	if Mode then
+		loop.BackgroundTransparency = 0
+	else
+		loop.Visible = false
+	end
+end
+
 local function Start(ClientObj)
 	local Client
 	-- Get the client script environment
@@ -354,7 +393,7 @@ local function Start(ClientObj)
 					CustomBackAction = nil
 					return
 				end
-				Client.transition(true)
+				Fade(true,ClientObj,Client)
 				print("Write rb64br/config.json")
 				writefile("rb64br/config.json",game:GetService("HttpService"):JSONEncode(Config))
 				print("Wrote rb64br/config.json")
@@ -373,7 +412,7 @@ local function Start(ClientObj)
 				Client.selt = 0
 			end))
 			table.insert(_G.BetterReplication.Events,ConfigOption.MouseButton1Click:connect(function()
-				Client.transition(true)
+				Fade(true,ClientObj,Client)
 				ClientObj.title:Stop()
 				if isfile("rb64br/config.json") then
 					local LoadedConfig = game:GetService("HttpService"):JSONDecode(readfile("rb64br/config.json"))
@@ -389,7 +428,7 @@ local function Start(ClientObj)
 				RenderConfigItems(Client,ConfigsFrame,Config)
 				ClientObj.store.Volume = 1
 				ClientObj.store:Play()
-				Client.transition(false)
+				Fade(false,ClientObj,Client)
 			end))
 			table.insert(_G.BetterReplication.Events,game:GetService("RunService").RenderStepped:Connect(function()
 				ConfigOption.spin.Visible = Client.selt == 4
